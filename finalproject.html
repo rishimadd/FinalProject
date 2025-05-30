@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive 3D Room</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #1a1a1a;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 14px;
+            z-index: 100;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .video-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        
+        .modal-content h2 {
+            color: #ffffff;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .modal-content p {
+            color: #cccccc;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%;
+            margin-bottom: 20px;
+        }
+        
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .close-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            background: #ff3838;
+            transform: translateY(-2px);
+        }
+
+        .clickable-hint {
+            position: absolute;
+            color: #00ff88;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="ui-overlay">
+            <div>Interactive 3D Room</div>
+            <div>Watch in this order:</div>
+            <div>1. Poster</div>
+            <div>2. Computer</div>
+            <div>3. House Model</div>
+            <div>4. Pen</div>
+        </div>
+        
+        <div id="computer-modal" class="video-modal">
+            <div class="modal-content">
+                <h2>History of Algorithmic Usage</h2>
+                <div class="video-container">
+                    <iframe src="htttps://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>
+                </div>
+                <button class="close-btn" onclick="closeModal('computer-modal')">Close</button>
+            </div>
+        </div>
+        
+        <div id="poster-modal" class="video-modal">
+            <div class="modal-content">
+                <h2>History of Residential Segregation</h2>
+                <div class="video-container">
+                    <iframe src="https://www.youtube.com/watch?v=VJ-vhuU4O28" allowfullscreen></iframe>
+                </div>
+                <button class="close-btn" onclick="closeModal('poster-modal')">Close</button>
+            </div>
+        </div>
+        
+        <div id="pen-modal" class="video-modal">
+            <div class="modal-content">
+                <h2>Policy Suggestions</h2>
+                <div class="video-container">
+                    <iframe src="htttps://www.youtube.com/embed/kJQP7kiw5Fk" allowfullscreen></iframe>
+                </div>
+                <button class="close-btn" onclick="closeModal('pen-modal')">Close</button>
+            </div>
+        </div>
+        
+        <div id="house-modal" class="video-modal">
+            <div class="modal-content">
+                <h2>Argument and Thesis</h2>
+                <div class="video-container">
+                    <iframe src="htttps://www.youtube.com/embed/EngW7tLk6R8" allowfullscreen></iframe>
+                </div>
+                <button class="close-btn" onclick="closeModal('house-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-10, 10, 7.5, -7.5, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x87CEEB, 1);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+        const wallMaterial = new THREE.MeshLambertMaterial({ color: 0xF5F5DC });
+        const deskMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+        const computerMaterial = new THREE.MeshLambertMaterial({ color: 0x2F2F2F });
+        const screenMaterial = new THREE.MeshLambertMaterial({ color: 0x000080 });
+        const posterMaterial = new THREE.MeshLambertMaterial({ color: 0xFF6347 });
+        const penMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF });
+        const houseMaterial = new THREE.MeshLambertMaterial({ color: 0x90EE90 });
+        const floorGeometry = new THREE.PlaneGeometry(20, 15);
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = -5;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        const backWallGeometry = new THREE.PlaneGeometry(20, 10);
+        const backWall = new THREE.Mesh(backWallGeometry, wallMaterial);
+        backWall.position.set(0, 0, -7.5);
+        scene.add(backWall);
+
+        const sideWallGeometry = new THREE.PlaneGeometry(15, 10);
+        const leftWall = new THREE.Mesh(sideWallGeometry, wallMaterial);
+        leftWall.rotation.y = Math.PI / 2;
+        leftWall.position.set(-10, 0, 0);
+        scene.add(leftWall);
+
+        const rightWall = new THREE.Mesh(sideWallGeometry, wallMaterial);
+        rightWall.rotation.y = -Math.PI / 2;
+        rightWall.position.set(10, 0, 0);
+        scene.add(rightWall);
+
+        const deskGeometry = new THREE.BoxGeometry(8, 0.2, 4);
+        const desk = new THREE.Mesh(deskGeometry, deskMaterial);
+        desk.position.set(-2, -2.9, -2);
+        desk.castShadow = true;
+        scene.add(desk);
+
+        const legGeometry = new THREE.BoxGeometry(0.2, 2, 0.2);
+        const positions = [[-5.8, -3.9, -3.8], [-5.8, -3.9, -0.2], [1.8, -3.9, -3.8], [1.8, -3.9, -0.2]];
+        positions.forEach(pos => {
+            const leg = new THREE.Mesh(legGeometry, deskMaterial);
+            leg.position.set(...pos);
+            leg.castShadow = true;
+            scene.add(leg);
+        });
+
+        const computerGroup = new THREE.Group();
+        
+        const towerGeometry = new THREE.BoxGeometry(0.4, 1.2, 0.6);
+        const tower = new THREE.Mesh(towerGeometry, computerMaterial);
+        tower.position.set(-0.5, 0, 0);
+        computerGroup.add(tower);
+
+        const baseGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.1);
+        const base = new THREE.Mesh(baseGeometry, computerMaterial);
+        base.position.set(0.5, -0.5, 0);
+        computerGroup.add(base);
+
+        const standGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.4);
+        const stand = new THREE.Mesh(standGeometry, computerMaterial);
+        stand.position.set(0.5, -0.3, 0);
+        computerGroup.add(stand);
+
+        const screenGeometry = new THREE.BoxGeometry(0.08, 0.8, 1.2);
+        const screen = new THREE.Mesh(screenGeometry, screenMaterial);
+        screen.position.set(0.5, 0.1, 0);
+        screen.rotation.y = Math.PI / 2;
+        computerGroup.add(screen);
+
+        const keyboardGeometry = new THREE.BoxGeometry(0.8, 0.05, 0.3);
+        const keyboardMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
+        const keyboard = new THREE.Mesh(keyboardGeometry, keyboardMaterial);
+        keyboard.position.set(0.2, -0.47, 0.5);
+        computerGroup.add(keyboard);
+
+        computerGroup.position.set(-1, -2.2, -2);
+        computerGroup.castShadow = true;
+        computerGroup.userData = { clickable: true, modalId: 'computer-modal' };
+        scene.add(computerGroup);
+
+        const posterGeometry = new THREE.PlaneGeometry(2, 1.5);
+        const posterTexture = new THREE.TextureLoader().load('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAF8A1IDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3+iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA');
+        const posterMaterialWithTexture = new THREE.MeshLambertMaterial({ map: posterTexture });
+        const poster = new THREE.Mesh(posterGeometry, posterMaterialWithTexture);
+        poster.position.set(3, 1, -7.4);
+        poster.userData = { clickable: true, modalId: 'poster-modal' };
+        scene.add(poster);
+
+        const penGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.8);
+        const pen = new THREE.Mesh(penGeometry, penMaterial);
+        pen.position.set(-3, -2.7, -1.5);
+        pen.rotation.z = Math.PI / 6;
+        pen.castShadow = true;
+        pen.userData = { clickable: true, modalId: 'pen-modal' };
+        scene.add(pen);
+
+        const houseGroup = new THREE.Group();
+        const houseBaseGeometry = new THREE.BoxGeometry(0.8, 0.6, 0.8);
+        const houseBase = new THREE.Mesh(houseBaseGeometry, houseMaterial);
+        houseGroup.add(houseBase);
+
+        const roofGeometry = new THREE.ConeGeometry(0.6, 0.4, 4);
+        const roofMaterial = new THREE.MeshLambertMaterial({ color: 0x8B0000 });
+        const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+        roof.position.y = 0.5;
+        roof.rotation.y = Math.PI / 4;
+        houseGroup.add(roof);
+
+        houseGroup.position.set(1, -2.6, -1.5);
+        houseGroup.castShadow = true;
+        houseGroup.userData = { clickable: true, modalId: 'house-modal' };
+        scene.add(houseGroup);
+
+        function createTextSprite(message, parameters) {
+            if (parameters === undefined) parameters = {};
+            const fontface = parameters.fontface || 'Arial';
+            const fontsize = parameters.fontsize || 18;
+            const borderThickness = parameters.borderThickness || 4;
+            const borderColor = parameters.borderColor || { r: 0, g: 0, b: 0, a: 1.0 };
+            const backgroundColor = parameters.backgroundColor || { r: 255, g: 255, b: 255, a: 1.0 };
+            const textColor = parameters.textColor || { r: 0, g: 0, b: 0, a: 1.0 };
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            context.font = 'Bold ' + fontsize + 'px ' + fontface;
+            const metrics = context.measureText(message);
+            const textWidth = metrics.width;
+
+            canvas.width = textWidth + borderThickness;
+            canvas.height = fontsize * 1.4 + borderThickness;
+            context.font = 'Bold ' + fontsize + 'px ' + fontface;
+
+            context.fillStyle = 'rgba(' + backgroundColor.r + ',' + backgroundColor.g + ',' + backgroundColor.b + ',' + backgroundColor.a + ')';
+            context.strokeStyle = 'rgba(' + borderColor.r + ',' + borderColor.g + ',' + borderColor.b + ',' + borderColor.a + ')';
+            context.lineWidth = borderThickness;
+            context.fillRect(borderThickness / 2, borderThickness / 2, textWidth + borderThickness, fontsize * 1.4 + borderThickness);
+            context.strokeRect(borderThickness / 2, borderThickness / 2, textWidth + borderThickness, fontsize * 1.4 + borderThickness);
+
+            context.fillStyle = 'rgba(' + textColor.r + ',' + textColor.g + ',' + textColor.b + ',' + textColor.a + ')';
+            context.fillText(message, borderThickness, fontsize + borderThickness);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(0.01 * canvas.width, 0.01 * canvas.height, 0.01);
+            return sprite;
+        }
+
+        const computerLabel = createTextSprite('Computer', {
+            fontsize: 16,
+            backgroundColor: { r: 255, g: 255, b: 0, a: 0.8 },
+            textColor: { r: 0, g: 0, b: 0, a: 1 }
+        });
+        computerLabel.position.set(-1, -0.5, -2);
+        scene.add(computerLabel);
+
+        const posterLabel = createTextSprite('Poster', {
+            fontsize: 16,
+            backgroundColor: { r: 255, g: 255, b: 0, a: 0.8 },
+            textColor: { r: 0, g: 0, b: 0, a: 1 }
+        });
+        posterLabel.position.set(3, 3, -7);
+        scene.add(posterLabel);
+
+        const penLabel = createTextSprite('Pen', {
+            fontsize: 16,
+            backgroundColor: { r: 255, g: 255, b: 0, a: 0.8 },
+            textColor: { r: 0, g: 0, b: 0, a: 1 }
+        });
+        penLabel.position.set(-3, -2, -1.5);
+        scene.add(penLabel);
+
+        const houseLabel = createTextSprite('Mini House', {
+            fontsize: 16,
+            backgroundColor: { r: 255, g: 255, b: 0, a: 0.8 },
+            textColor: { r: 0, g: 0, b: 0, a: 1 }
+        });
+        houseLabel.position.set(1, -1.8, -1.5);
+        scene.add(houseLabel);
+
+        camera.position.set(8, 6, 8);
+        camera.lookAt(0, -1, -2);
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let isMouseDown = false;
+        let mouseX = 0, mouseY = 0;
+
+        function onMouseMove(event) {
+            if (isMouseDown) {
+                const deltaX = event.clientX - mouseX;
+                const deltaY = event.clientY - mouseY;
+                
+                // Rotate camera around the scene
+                const spherical = new THREE.Spherical();
+                spherical.setFromVector3(camera.position);
+                spherical.theta -= deltaX * 0.01;
+                spherical.phi += deltaY * 0.01;
+                spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+                
+                camera.position.setFromSpherical(spherical);
+                camera.lookAt(0, -1, -2);
+                
+                mouseX = event.clientX;
+                mouseY = event.clientY;
+            }
+        }
+
+        function onMouseDown(event) {
+            isMouseDown = true;
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        }
+
+        function onMouseUp() {
+            isMouseDown = false;
+        }
+
+        function onMouseClick(event) {
+            if (isMouseDown) return;
+            
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            for (let intersect of intersects) {
+                let object = intersect.object;
+                while (object && !object.userData.clickable) {
+                    object = object.parent;
+                }
+                if (object && object.userData.clickable) {
+                    openModal(object.userData.modalId);
+                    break;
+                }
+            }
+        }
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mousedown', onMouseDown);
+        window.addEventListener('mouseup', onMouseUp);
+        window.addEventListener('click', onMouseClick);
+
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        window.addEventListener('click', function(event) {
+            if (event.target.classList.contains('video-modal')) {
+                event.target.style.display = 'none';
+            }
+        });
+
+        function onWindowResize() {
+            const aspect = window.innerWidth / window.innerHeight;
+            const frustumSize = 15;
+            camera.left = -frustumSize * aspect / 2;
+            camera.right = frustumSize * aspect / 2;
+            camera.top = frustumSize / 2;
+            camera.bottom = -frustumSize / 2;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.addEventListener('resize', onWindowResize);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
